@@ -81,6 +81,8 @@ def spoof_thread():
         spoof_thread.daemon = True
         spoof_thread.start()
         print('Start arp spoofing')
+        while True:
+            pass
 
     except KeyboardInterrupt:
         print('\nStopping network capture..Restoring network')
