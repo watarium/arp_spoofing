@@ -10,8 +10,7 @@ def get_option():
     argparser.add_argument('-t', type=str, default='192.168.2.119', help='Specify a target ip address.')
     return argparser.parse_args()
 
-#Given an IP, get the MAC. Broadcast ARP Request for a IP Address. Should recieve
-#an ARP reply with MAC Address
+#Given an IP, get the MAC. Broadcast ARP Request for a IP Address. Should recieve an ARP reply with MAC Address
 def get_mac(ip_address):
     #ARP request is constructed. sr function is used to send/ receive a layer 3 packet
     #Alternative Method using Layer 2:
@@ -20,8 +19,7 @@ def get_mac(ip_address):
         return r[ARP].hwsrc
     return None
 
-#Restore the network by reversing the ARP spoofing attack. Broadcast ARP Reply with
-#correct MAC and IP Address information
+#Restore the network by reversing the ARP spoofing attack. Broadcast ARP Reply with correct MAC and IP Address information
 def restore_network(gateway_ip, gateway_mac, target_ip, target_mac):
     send(ARP(op=2, hwdst='ff:ff:ff:ff:ff:ff', pdst=gateway_ip, hwsrc=target_mac, psrc=target_ip), count=5)
     send(ARP(op=2, hwdst='ff:ff:ff:ff:ff:ff', pdst=target_ip, hwsrc=gateway_mac, psrc=gateway_ip), count=5)
